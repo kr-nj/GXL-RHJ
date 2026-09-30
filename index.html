@@ -588,8 +588,10 @@ function save(fromRemote){
    打开页面即自动同步:谁最后改以谁为准,改动后 1.2 秒推送,每 5 秒拉取一次。 */
 const SYNC_API   = "https://one-science.cn/api/sync/wedding";
 const SYNC_AT_KEY= "wedding_sync_at_v1";   // 本机数据最后修改时间戳
+const SYNC_PASS_KEY = "wedding_sync_pass_v1"; // 同步口令(本机保存)
 
 const sync = {
+  pass: localStorage.getItem(SYNC_PASS_KEY) || "",
   localAt: Number(localStorage.getItem(SYNC_AT_KEY) || 0),
   pushTimer: null,
   pullTimer: null,
@@ -597,6 +599,14 @@ const sync = {
   pulling: false,
   status: "off", // off | ok | busy | err
 };
+
+// 统一构造请求头(自动带上口令)
+function syncHeaders(extra){
+  const h = {"Accept":"application/json"};
+  if(sync.pass) h["X-Sync-Pass"] = sync.pass;
+  if(extra) Object.assign(h, extra);
+  return h;
+}
 
 function setSyncUI(status, text){
   sync.status = status;
@@ -638,9 +648,10 @@ async function pushNow(){
   try{
     const res = await fetch(SYNC_API, {
       method:"PUT",
-      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      headers:syncHeaders({"Content-Type":"application/json"}),
       body: JSON.stringify(envelope()),
     });
+    if(res.status===401){ setSyncUI("err","需要口令"); openPassModal("口令不正确或已失效,请重新输入。"); return; }
     if(!res.ok) throw new Error("HTTP "+res.status);
     setSyncUI("ok","已同步 ✓");
   }catch(e){
@@ -657,7 +668,8 @@ async function pullNow(){
   if(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA")) return;
   sync.pulling = true;
   try{
-    const res = await fetch(SYNC_API, {headers:{"Accept":"application/json"}, cache:"no-store"});
+    const res = await fetch(SYNC_API, {headers:syncHeaders(), cache:"no-store"});
+    if(res.status===401){ if(sync.status!=="busy") setSyncUI("err","需要口令"); openPassModal("口令不正确或已失效,请重新输入。"); return; }
     if(res.status===404){ if(sync.status!=="busy") setSyncUI("ok","已同步 ✓"); return; }
     if(!res.ok) throw new Error("HTTP "+res.status);
     const env = await res.json();
@@ -692,7 +704,21 @@ function syncMenu(){
       <button class="primary" id="pullOnce">立即刷新</button>
       <button class="sec" id="closeModal">关闭</button>
     </div>
+    <span class="close" id="changePass">重新输入口令</span>
     <span class="close" id="closeModal2">关闭</span>
+  `);
+}
+
+function openPassModal(msg){
+  openModal(`
+    <h3>🔑 输入同步口令</h3>
+    <p>${escapeHtml(msg||"请输入你们约定的口令,才能读取/修改云端清单。")}</p>
+    <input id="passInput" type="password" placeholder="口令" autocomplete="off">
+    <div class="row">
+      <button class="primary" id="doPass">确定</button>
+      <button class="sec" id="closeModal">取消</button>
+    </div>
+    <p class="hint">口令只保存在本机浏览器里,只发给信任的人。</p>
   `);
 }
 
@@ -701,6 +727,32 @@ function bindModal(){
   if($("closeModal")) $("closeModal").onclick = closeModal;
   if($("closeModal2")) $("closeModal2").onclick = closeModal;
   if($("pullOnce")) $("pullOnce").onclick = ()=>{ pullNow(); $("pullOnce").textContent="已刷新"; };
+  if($("changePass")) $("changePass").onclick = ()=>{ openPassModal("重新输入同步口令:"); };
+  if($("doPass")) $("doPass").onclick = async ()=>{
+    const v = $("passInput").value.trim();
+    if(!v){ alert("请输入口令"); return; }
+    sync.pass = v;
+    localStorage.setItem(SYNC_PASS_KEY, v);
+    try{
+      const res = await fetch(SYNC_API, {headers:syncHeaders(), cache:"no-store"});
+      if(res.status===401){
+        sync.pass = "";
+        localStorage.removeItem(SYNC_PASS_KEY);
+        openPassModal("口令不正确,请重试。");
+        return;
+      }
+      if(res.ok || res.status===404){
+        closeModal();
+        setSyncUI("ok","已同步 ✓");
+        startPolling();
+        pullNow();
+        return;
+      }
+      throw new Error("HTTP "+res.status);
+    }catch(e){
+      openPassModal("连接失败:"+(e && e.message ? e.message : "请检查网络")+"。请重试。");
+    }
+  };
 }
 
 document.getElementById("syncBtn").onclick = syncMenu;
@@ -1078,12 +1130,17 @@ renderCountdown();
 render();
 
 /* ---------- 同步初始化 ---------- */
-setSyncUI("ok","云端同步已开启");
-startPolling();
-pullNow(); // 打开页面先拉一次云端数据
+if(sync.pass){
+  setSyncUI("ok","云端同步已开启");
+  startPolling();
+  pullNow(); // 打开页面先拉一次云端数据
+}else{
+  setSyncUI("off","未连接");
+  openPassModal("请输入你们的同步口令,即可读取/修改云端清单。");
+}
 // 回到前台时立刻拉一次,减少等待
 document.addEventListener("visibilitychange", ()=>{
-  if(!document.hidden) pullNow();
+  if(!document.hidden && sync.pass) pullNow();
 });
 </script>
 </body>

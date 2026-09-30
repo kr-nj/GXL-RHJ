@@ -1,0 +1,1206 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GXL ❤ RHJ 备婚待办</title>
+<style>
+  :root{
+    --pink:#e8879c;
+    --pink-soft:#f7d9e0;
+    --pink-bg:#fdf3f5;
+    --ink:#3a3236;
+    --muted:#9a8d92;
+    --line:#f0e0e5;
+    --green:#6bbf8a;
+    --card:#ffffff;
+    --shadow:0 4px 18px rgba(211,140,160,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    background:var(--pink-bg);
+    color:var(--ink);
+    line-height:1.6;
+    padding-bottom:60px;
+  }
+  header{
+    background:linear-gradient(135deg,#f0a0b4,#e8879c);
+    color:#fff;
+    padding:26px 20px 22px;
+    text-align:center;
+    position:relative;
+  }
+  header h1{font-size:23px;letter-spacing:2px;}
+  header .names{font-size:20px;font-weight:700;letter-spacing:1px;}
+  header .date{font-size:14px;opacity:.95;margin-top:6px;}
+  header .countdown{
+    display:inline-block;margin-top:10px;background:rgba(255,255,255,.22);
+    padding:4px 14px;border-radius:20px;font-size:13px;
+  }
+  header .countdown b{font-size:16px;}
+  .wrap{max-width:760px;margin:0 auto;padding:0 14px;}
+
+  /* 进度总览 */
+  .overview{
+    background:var(--card);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    margin:-16px auto 18px;
+    padding:18px 18px 14px;
+    position:relative;
+  }
+  .overview h2{font-size:15px;margin-bottom:12px;color:var(--pink);}
+  .bar{
+    height:12px;border-radius:8px;background:var(--pink-soft);overflow:hidden;
+  }
+  .bar>div{
+    height:100%;background:linear-gradient(90deg,#f0a0b4,#e8879c);
+    width:0;transition:width .5s ease;border-radius:8px;
+  }
+  .bar-label{display:flex;justify-content:space-between;font-size:13px;margin-top:8px;color:var(--muted);}
+  .bar-label b{color:var(--pink);font-size:15px;}
+
+  /* Tab */
+  .tabs{
+    display:flex;gap:8px;overflow-x:auto;padding:4px 0 14px;
+    scrollbar-width:none;
+  }
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{
+    flex:0 0 auto;padding:8px 16px;border-radius:20px;background:#fff;
+    border:1px solid var(--line);color:var(--muted);font-size:14px;cursor:pointer;
+    white-space:nowrap;transition:.2s;
+  }
+  .tab.active{background:var(--pink);color:#fff;border-color:var(--pink);box-shadow:var(--shadow);}
+
+  .panel{display:none;animation:fade .3s;}
+  .panel.active{display:block;}
+  @keyframes fade{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+
+  /* 分组卡片(一级阶段) */
+  .group{
+    background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+    margin-bottom:16px;overflow:hidden;
+  }
+  .group-head{
+    padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+    user-select:none;
+  }
+  .group-head .title{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:600;flex:1;}
+  .group-head .badge{
+    font-size:12px;color:var(--muted);background:var(--pink-bg);
+    padding:2px 10px;border-radius:12px;
+  }
+  .group-head .gdel{
+    color:var(--muted);font-size:15px;cursor:pointer;padding:0 4px;margin-left:8px;line-height:1;
+  }
+  .group-body{border-top:1px solid var(--line);}
+
+  /* 二级子分组 */
+  .sub{border-top:1px solid var(--line);}
+  .sub:first-child{border-top:none;}
+  .sub-head{
+    display:flex;align-items:center;gap:8px;padding:10px 14px;
+    background:var(--pink-bg);user-select:none;
+  }
+  .sub-head .sub-title{flex:1;font-size:13px;font-weight:600;color:var(--pink);}
+  .sub-head .badge{
+    font-size:11px;color:var(--muted);background:#fff;
+    padding:2px 9px;border-radius:12px;
+  }
+  .sub-head .sdel{color:var(--muted);font-size:14px;cursor:pointer;padding:0 4px;line-height:1;}
+
+  .item{
+    display:flex;align-items:flex-start;gap:8px;padding:12px 14px;
+    border-bottom:1px solid var(--line);
+  }
+  .item:last-child{border-bottom:none;}
+  .item .cb{
+    appearance:none;width:22px;height:22px;border:2px solid var(--pink-soft);
+    border-radius:50%;cursor:pointer;flex:0 0 auto;margin-top:2px;position:relative;transition:.2s;
+  }
+  .item .cb:checked{background:var(--green);border-color:var(--green);}
+  .item .cb:checked::after{
+    content:"✓";color:#fff;font-size:14px;position:absolute;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+  }
+  .item .txt{flex:1;font-size:14px;cursor:pointer;min-width:0;}
+  .item .txt .note{display:block;font-size:12px;color:var(--muted);margin-top:2px;line-height:1.45;}
+  .item.done .txt{color:var(--muted);text-decoration:line-through;}
+  .item.done .txt .note{text-decoration:none;}
+  .item .edit{
+    color:#d9c2c9;font-size:14px;cursor:pointer;flex:0 0 auto;margin-top:2px;
+    padding:0 2px;transition:.2s;
+  }
+  .item .edit:hover{color:var(--pink);}
+  .item .edit.has{color:var(--pink);}
+  .item .who{
+    font-size:11px;padding:2px 8px;border-radius:10px;flex:0 0 auto;margin-top:1px;cursor:pointer;
+  }
+  .who.bride{background:#fde5ec;color:#e8879c;}
+  .who.groom{background:#e2effa;color:#5b9bd5;}
+  .who.both{background:#eafaf0;color:#6bbf8a;}
+  .item .del{
+    color:#d9c2c9;font-size:18px;cursor:pointer;flex:0 0 auto;line-height:1;margin-top:1px;
+    padding:0 2px;transition:.2s;
+  }
+  .item .del:hover{color:var(--pink);}
+
+  /* 添加项 */
+  .additem{
+    display:flex;gap:8px;padding:11px 14px;border-top:1px dashed var(--line);background:#fffafc;
+  }
+  .additem input{
+    flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:14px;color:var(--ink);
+  }
+  .additem input:focus{outline:none;border-color:var(--pink);}
+  .additem button{
+    flex:0 0 auto;background:var(--pink);color:#fff;border:none;border-radius:10px;
+    padding:0 16px;font-size:14px;cursor:pointer;
+  }
+  .addsub{
+    width:calc(100% - 28px);margin:8px 14px 12px;background:#fff;border:1px dashed var(--pink-soft);
+    color:var(--pink);border-radius:10px;padding:8px;font-size:13px;cursor:pointer;
+  }
+  .addgroup{
+    width:100%;background:#fff;border:1px dashed var(--pink-soft);color:var(--pink);
+    border-radius:14px;padding:12px;font-size:14px;cursor:pointer;margin-bottom:16px;
+  }
+
+  /* 预算表 */
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{padding:10px 8px;text-align:left;border-bottom:1px solid var(--line);}
+  th{color:var(--pink);font-weight:600;font-size:13px;background:var(--pink-bg);}
+  td.num{text-align:right;font-variant-numeric:tabular-nums;}
+  .b-name{width:100%;border:none;background:transparent;font-size:14px;color:var(--ink);}
+  .b-name:focus{outline:none;border-bottom:1px solid var(--pink);}
+  .budget-input{
+    width:82px;border:1px solid var(--line);border-radius:8px;padding:5px 8px;
+    font-size:13px;text-align:right;color:var(--ink);
+  }
+  .budget-input:focus{outline:none;border-color:var(--pink);}
+  .b-del{color:#d9c2c9;font-size:16px;cursor:pointer;text-align:center;}
+  .b-del:hover{color:var(--pink);}
+  tfoot td{font-weight:700;color:var(--pink);background:var(--pink-bg);}
+
+  /* 注意事项 */
+  .tip{
+    background:var(--card);border-radius:14px;box-shadow:var(--shadow);
+    padding:14px 16px;margin-bottom:12px;font-size:14px;border-left:4px solid var(--pink);
+  }
+  .tip-head{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px;}
+  .tip-head b{color:var(--pink);flex:1;}
+  .tip-actions{flex:0 0 auto;}
+  .tip-actions span{cursor:pointer;color:var(--muted);margin-left:10px;font-size:15px;line-height:1;}
+  .tip-actions span:hover{color:var(--pink);}
+  .tip .tip-body{color:var(--ink);}
+
+  footer{text-align:center;color:var(--muted);font-size:12px;padding:20px;}
+  .reset{
+    display:inline-block;margin-top:10px;color:var(--muted);font-size:12px;
+    text-decoration:underline;cursor:pointer;
+  }
+
+  /* 同步条 */
+  .syncbar{
+    display:flex;align-items:center;gap:8px;justify-content:center;flex-wrap:wrap;
+    background:rgba(255,255,255,.18);margin-top:12px;padding:8px 12px;border-radius:14px;
+  }
+  .syncbar .st{font-size:12px;color:#fff;opacity:.95;display:flex;align-items:center;gap:5px;}
+  .syncbar .dot{width:8px;height:8px;border-radius:50%;background:#f7d9e0;flex:0 0 auto;}
+  .syncbar .dot.on{background:#8ef0b0;}
+  .syncbar .dot.err{background:#ffd27a;}
+  .syncbar button{
+    background:rgba(255,255,255,.9);color:var(--pink);border:none;border-radius:12px;
+    padding:5px 12px;font-size:12px;cursor:pointer;font-weight:600;
+  }
+  .syncbar button.ghost{background:rgba(255,255,255,.25);color:#fff;font-weight:500;}
+
+  /* 弹层 */
+  .modal-mask{
+    position:fixed;inset:0;background:rgba(58,50,54,.45);display:none;
+    align-items:center;justify-content:center;padding:20px;z-index:50;
+  }
+  .modal-mask.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:18px;padding:20px 18px;max-width:340px;width:100%;
+    box-shadow:0 12px 40px rgba(0,0,0,.2);
+  }
+  .modal h3{font-size:16px;color:var(--pink);margin-bottom:10px;}
+  .modal p{font-size:13px;color:var(--ink);line-height:1.6;margin-bottom:12px;}
+  .modal .code{
+    background:var(--pink-bg);border:1px dashed var(--pink-soft);border-radius:10px;
+    padding:10px;font-size:13px;word-break:break-all;color:var(--ink);margin-bottom:12px;
+    font-family:monospace;user-select:all;
+  }
+  .modal input{
+    width:100%;border:1px solid var(--line);border-radius:10px;padding:9px 11px;
+    font-size:14px;color:var(--ink);margin-bottom:12px;
+  }
+  .modal input:focus{outline:none;border-color:var(--pink);}
+  .modal .row{display:flex;gap:8px;}
+  .modal button{
+    flex:1;border:none;border-radius:12px;padding:10px;font-size:14px;cursor:pointer;
+  }
+  .modal button.primary{background:var(--pink);color:#fff;}
+  .modal button.sec{background:var(--pink-bg);color:var(--pink);}
+  .modal .close{
+    display:block;text-align:center;margin-top:6px;color:var(--muted);font-size:12px;
+    cursor:pointer;text-decoration:underline;
+  }
+  .modal .hint{font-size:11px;color:var(--muted);line-height:1.5;margin-top:4px;}
+</style>
+</head>
+<body>
+<header>
+  <h1>💍</h1>
+  <div class="names">新郎 GXL ❤ 新娘 RHJ</div>
+  <div class="date">婚期 2027.01.17</div>
+  <div class="countdown" id="countdown"></div>
+  <div class="syncbar">
+    <span class="st"><span class="dot" id="syncDot"></span><span id="syncText">未同步(仅本机)</span></span>
+    <button id="syncBtn">☁ 开启同步</button>
+  </div>
+</header>
+
+<div class="modal-mask" id="syncModal">
+  <div class="modal" id="syncModalBody"></div>
+</div>
+
+<div class="wrap">
+  <div class="overview">
+    <h2>整体进度</h2>
+    <div class="bar"><div id="progressBar"></div></div>
+    <div class="bar-label">
+      <span>已完成 <b id="doneCount">0</b> / <span id="totalCount">0</span> 项</span>
+      <span><b id="progressPct">0%</b></span>
+    </div>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div id="panels"></div>
+
+  <footer>
+    数据自动保存在本设备浏览器中 · 换设备或清缓存会丢失<br>
+    点 ✎ 加备注 · 点「一起/新娘/新郎」切负责人 · 点 × 删除<br>
+    <span class="reset" id="resetBtn">恢复默认清单(清空所有修改)</span>
+  </footer>
+</div>
+
+<script>
+/* ---------- 工具 ---------- */
+function uid(){return "i"+Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+
+/* ---------- 默认数据 ----------
+   结构:tab -> groups(一级阶段) -> 每个阶段可有 items(直接项) 和/或 subs(二级子分组)
+   subs -> 每个子分组有 items */
+const DEFAULT_DATA = {
+  timeline: {
+    label:"⏰ 时间线",
+    groups:[
+      {name:"👫 双方分工总览", subs:[
+        {name:"新娘主要负责", items:[
+          {t:"婚纱礼服、造型、妆发", who:"bride"},
+          {t:"伴娘团沟通与服装", who:"bride"},
+          {t:"伴手礼、喜糖", who:"bride"},
+          {t:"手捧花、首饰选购", who:"bride"},
+          {t:"婚房软装、细节布置", who:"bride"},
+          {t:"新娘物品清单打包", who:"bride"},
+        ]},
+        {name:"新郎主要负责", items:[
+          {t:"婚车、接亲路线规划", who:"groom"},
+          {t:"烟酒饮料采购、酒店结账", who:"groom"},
+          {t:"伴郎团沟通与堵门应对", who:"groom"},
+          {t:"当天对接司仪/摄影/婚车", who:"groom"},
+          {t:"接送宾客、住宿安排", who:"groom"},
+          {t:"红包现金准备与分装", who:"groom"},
+        ]},
+        {name:"两人一起", items:[
+          {t:"选酒店、定预算", who:"both"},
+          {t:"拍婚纱照", who:"both"},
+          {t:"发请柬、统计宾客", who:"both"},
+          {t:"婚房布置", who:"both"},
+          {t:"确定婚礼流程", who:"both"},
+          {t:"蜜月计划", who:"both"},
+          {t:"和双方父母沟通协调", who:"both"},
+        ]},
+      ]},
+      {name:"婚期前 8-12 个月 · 打地基", items:[
+        {t:"两人对齐婚礼预期与总预算", note:"办多大、花多少、双方家庭出资怎么分,先谈清楚", who:"both"},
+        {t:"确定婚期(避开生理期、注意黄道吉日与工作安排)", who:"both"},
+        {t:"确定婚礼形式与风格", note:"中式/西式/草坪/户外/旅行婚礼,定基调", who:"both"},
+        {t:"估算宾客人数与桌数", note:"先拉双方亲友草单,心里有数", who:"both"},
+        {t:"实地看场地、比价、锁定婚宴酒店", note:"看档期、最低桌数、场地费、能否自带酒水", who:"both"},
+        {t:"交酒店定金、签合同", note:"写清桌数浮动、加位价格、退改规则", who:"both"},
+        {t:"确定婚庆/策划团队并签约", who:"both"},
+        {t:"确定伴郎伴娘人选并知会对方", who:"both"},
+        {t:"建一个备婚共享相册/文档,灵感统一收集", who:"both"},
+      ]},
+      {name:"婚期前 6-8 个月 · 定大项", items:[
+        {t:"预约并拍摄婚纱照", note:"提前 1-2 个月约,注意出片周期", who:"both"},
+        {t:"选定婚纱礼服(婚纱/秀禾/敬酒服)", who:"bride"},
+        {t:"选定新郎西装/礼服", who:"groom"},
+        {t:"预订当天摄影、摄像、跟拍", note:"好的档期抢手,尽早定", who:"both"},
+        {t:"预订司仪/主持人并沟通风格", who:"both"},
+        {t:"预订新娘跟妆(试妆后再定)", who:"bride"},
+        {t:"选购婚戒/对戒", note:"刻字、改圈口都要留时间", who:"both"},
+      ]},
+      {name:"婚期前 3-6 个月 · 领证与细化", items:[
+        {t:"办理婚检", who:"both"},
+        {t:"领结婚证", note:"带双方身份证、户口本,提前查当地要求", who:"both"},
+        {t:"确定蜜月目的地并订机票酒店", note:"办签证要留足时间", who:"both"},
+        {t:"确定婚车(婚车公司或朋友的车)", who:"groom"},
+        {t:"确定喜糖、伴手礼、喜烟喜酒", who:"bride"},
+        {t:"设计并订购请柬(纸质/电子)", who:"both"},
+        {t:"确定婚礼整体流程初稿", who:"both"},
+        {t:"确定婚房布置方案、下单主要材料", who:"both"},
+      ]},
+      {name:"🛍 物品采购清单", subs:[
+        {name:"证件手续", items:[
+          {t:"双方身份证", who:"both"},
+          {t:"双方户口本", who:"both"},
+          {t:"结婚登记照(红底,可现场拍)", who:"both"},
+          {t:"婚检报告", who:"both"},
+          {t:"如异地:居住证明/相关材料", who:"both"},
+        ]},
+        {name:"婚纱礼服(新娘)", items:[
+          {t:"出门纱/主纱", who:"bride"},
+          {t:"秀禾服/龙凤褂", who:"bride"},
+          {t:"敬酒服", who:"bride"},
+          {t:"婚鞋(高跟+平底各一)", who:"bride"},
+          {t:"头纱、头饰", who:"bride"},
+          {t:"手套、披肩(冬季)", who:"bride"},
+        ]},
+        {name:"服装(新郎)", items:[
+          {t:"接亲/仪式西装", who:"groom"},
+          {t:"敬酒服/中式礼服", who:"groom"},
+          {t:"衬衫、领带/领结", who:"groom"},
+          {t:"皮鞋、皮带、袜子", who:"groom"},
+          {t:"胸花、袖扣", who:"groom"},
+        ]},
+        {name:"三金/首饰", items:[
+          {t:"婚戒/对戒", who:"both"},
+          {t:"金项链", who:"bride"},
+          {t:"金手镯", who:"bride"},
+          {t:"金耳环", who:"bride"},
+        ]},
+        {name:"婚房布置", items:[
+          {t:"喜字、拉花、气球", who:"both"},
+          {t:"床品四件套(红色)", who:"both"},
+          {t:"婚纱照摆台/挂画", who:"both"},
+          {t:"压床娃娃、抱枕", who:"both"},
+          {t:"喜糖盒、瓜子花生", who:"both"},
+          {t:"led 灯串/氛围灯", who:"both"},
+        ]},
+        {name:"宾客相关", items:[
+          {t:"请柬(纸质/电子)", who:"both"},
+          {t:"喜糖", who:"bride"},
+          {t:"伴手礼", who:"bride"},
+          {t:"签到本、签到笔", who:"both"},
+          {t:"礼金簿、礼金箱", who:"both"},
+          {t:"座位表/桌卡", who:"both"},
+        ]},
+      ]},
+      {name:"婚期前 1-3 个月 · 敲细节", items:[
+        {t:"整理最终宾客名单、发请柬", who:"both"},
+        {t:"和酒店确认菜单、试菜", who:"both"},
+        {t:"和婚庆敲定现场布置、花艺、物料清单", who:"both"},
+        {t:"确定婚礼当天详细时间表(分钟级)", who:"both"},
+        {t:"确认各环节负责人(总管、财务、接待等)", who:"both"},
+        {t:"试妆试造型、定妆", who:"bride"},
+        {t:"准备手捧花、头纱、首饰", who:"bride"},
+        {t:"设计接亲游戏、堵门环节", who:"both"},
+        {t:"准备结婚证件照/成长照片墙素材", who:"both"},
+        {t:"新娘开始护肤、美白、身材管理", who:"bride"},
+      ]},
+      {name:"婚期前 2-4 周 · 收口", items:[
+        {t:"和酒店最终确认桌数、座位安排、餐标", who:"both"},
+        {t:"和婚庆走一遍完整流程、彩排", who:"both"},
+        {t:"和司仪、摄影、摄像对流程与必拍镜头", who:"both"},
+        {t:"确认婚车路线、时间、装饰", who:"groom"},
+        {t:"准备各类红包(改口费、开门、压床、答谢)", who:"both"},
+        {t:"取婚纱、礼服、婚鞋并试穿", who:"both"},
+        {t:"给宾客做最终到场统计、安排接送/住宿", who:"both"},
+        {t:"确认伴郎伴娘服装、分工到位", who:"both"},
+        {t:"给父母准备当天服装", who:"both"},
+      ]},
+      {name:"婚礼前 1-3 天 · 冲刺", items:[
+        {t:"新娘做美甲、早睡、清淡饮食", who:"bride"},
+        {t:"新郎理发、修面", who:"groom"},
+        {t:"按清单清点当天所有物品并装箱", who:"both"},
+        {t:"给司仪、摄影、婚车、跟妆再次确认时间地点", who:"both"},
+        {t:"布置新房、贴喜字、挂婚纱照", who:"both"},
+        {t:"手机充满电、备好充电宝", who:"both"},
+        {t:"现金、红包分装贴标签,交给指定负责人", who:"both"},
+        {t:"确认第二天起床、化妆、接亲时间", who:"both"},
+      ]},
+      {name:"🎉 婚礼当天", subs:[
+        {name:"📋 当天流程", items:[
+          {t:"新娘早起化妆造型", who:"bride"},
+          {t:"新郎带队接亲、堵门、找婚鞋", who:"groom"},
+          {t:"改口敬茶、给改口红包", who:"both"},
+          {t:"车队出发前往酒店", who:"both"},
+          {t:"仪式彩排走位、就位", who:"both"},
+          {t:"迎宾、签到、引导入座", who:"both"},
+          {t:"典礼仪式", who:"both"},
+          {t:"敬酒(记得吃东西、备吸管水)", who:"both"},
+          {t:"送宾客、清点礼金与遗留物品", who:"both"},
+          {t:"和酒店结账、核对桌数", who:"groom"},
+        ]},
+        {name:"🎒 物品·证件与贵重", items:[
+          {t:"结婚证(摆拍用)", who:"both"},
+          {t:"婚戒 / 对戒", who:"both"},
+          {t:"三金首饰", who:"bride"},
+          {t:"各类红包(改口/开门/压床/答谢)", who:"both"},
+          {t:"备用现金、零钱", who:"both"},
+          {t:"身份证、银行卡", who:"both"},
+        ]},
+        {name:"🎒 物品·新娘用品", items:[
+          {t:"婚纱、秀禾、敬酒服", who:"bride"},
+          {t:"婚鞋(高跟+平底)", who:"bride"},
+          {t:"手捧花、头纱、头饰", who:"bride"},
+          {t:"补妆包(口红、粉饼、定妆喷雾、吸油纸)", who:"bride"},
+          {t:"隐形内衣、防走光贴、胸贴", who:"bride"},
+          {t:"睫毛胶、小镜子、小梳子", who:"bride"},
+          {t:"暖宝宝(冬季)、丝袜备用", who:"bride"},
+        ]},
+        {name:"🎒 物品·新郎用品", items:[
+          {t:"西装、衬衫、领带/领结、皮鞋", who:"groom"},
+          {t:"胸花、袖扣、皮带", who:"groom"},
+          {t:"备用衬衫(敬酒容易脏)", who:"groom"},
+          {t:"打火机、烟(敬长辈用)", who:"groom"},
+        ]},
+        {name:"🎒 物品·应急包", items:[
+          {t:"针线包、别针、双面胶", who:"both"},
+          {t:"纸巾、湿巾、垃圾袋", who:"both"},
+          {t:"常用药(肠胃药、创可贴、晕车药、止痛药)", who:"both"},
+          {t:"充电宝、数据线、插线板", who:"both"},
+          {t:"小零食、水、吸管(不花妆)", who:"bride"},
+          {t:"透明雨伞(备雨)", who:"both"},
+          {t:"记号笔、便利贴、透明胶", who:"both"},
+        ]},
+        {name:"👥 当天关键岗位(可指派亲友)", items:[
+          {t:"总管/大管家(统筹全场)", who:"both"},
+          {t:"财务(收礼金、管红包)", who:"both"},
+          {t:"接待/签到", who:"both"},
+          {t:"物品保管(婚戒、证件)", who:"both"},
+          {t:"照顾双方父母的人", who:"both"},
+        ]},
+      ]},
+      {name:"婚礼后 · 收尾", items:[
+        {t:"归还租借物品(婚纱、首饰、婚车等)", who:"both"},
+        {t:"给伴郎伴娘、帮忙的亲友答谢", who:"both"},
+        {t:"整理礼金账本", who:"both"},
+        {t:"催婚庆/摄影出成片、精修", who:"both"},
+        {t:"出发蜜月", who:"both"},
+        {t:"回门(回娘家)", who:"both"},
+      ]},
+    ]
+  },
+  contacts: {
+    label:"📇 联系人",
+    groups:[
+      {name:"核心供应商(点×可删,可添加)", items:[
+        {t:"婚宴酒店:____ 电话 ____", who:"both"},
+        {t:"婚庆/策划:____ 电话 ____", who:"both"},
+        {t:"司仪:____ 电话 ____", who:"both"},
+        {t:"摄影:____ 电话 ____", who:"both"},
+        {t:"摄像:____ 电话 ____", who:"both"},
+        {t:"跟妆:____ 电话 ____", who:"bride"},
+        {t:"婚车:____ 电话 ____", who:"groom"},
+        {t:"花艺:____ 电话 ____", who:"both"},
+      ]},
+      {name:"伴郎伴娘", items:[
+        {t:"伴娘1:____ 电话 ____", who:"bride"},
+        {t:"伴娘2:____ 电话 ____", who:"bride"},
+        {t:"伴郎1:____ 电话 ____", who:"groom"},
+        {t:"伴郎2:____ 电话 ____", who:"groom"},
+      ]},
+    ]
+  },
+};
+
+const DEFAULT_BUDGET = [
+  {name:"婚宴酒店(含餐)", plan:60000},
+  {name:"婚庆策划布置", plan:20000},
+  {name:"婚纱照", plan:8000},
+  {name:"婚纱礼服/西装", plan:6000},
+  {name:"婚戒对戒", plan:15000},
+  {name:"摄影摄像跟拍", plan:6000},
+  {name:"司仪主持", plan:4000},
+  {name:"新娘跟妆", plan:3000},
+  {name:"婚车", plan:3000},
+  {name:"喜糖伴手礼", plan:4000},
+  {name:"烟酒饮料", plan:5000},
+  {name:"蜜月旅行", plan:20000},
+  {name:"其他杂项/备用", plan:10000},
+];
+
+const DEFAULT_TIPS = [
+  {h:"预算留 10-15% 机动",c:"婚礼总有临时加项,留一笔备用金心里不慌。"},
+  {h:"合同白纸黑字",c:"酒店、婚庆、摄影都要写清楚服务内容、时长、加价规则和违约条款。"},
+  {h:"当天一定要吃东西",c:"新人容易饿着忙一整天,让伴娘准备好吸管零食和水。"},
+  {h:"提前彩排接亲流程",c:"堵门游戏、改口、敬酒顺序提前和双方长辈对一遍,避免尴尬。"},
+  {h:"重要物品指定专人保管",c:"婚戒、红包、结婚证交给靠谱的伴郎伴娘,别自己拿。"},
+  {h:"给摄影师一份必拍清单",c:"想要的镜头(和父母合影、细节等)提前写好给跟拍。"},
+];
+
+/* ---------- 状态:整份数据都可编辑并持久化 ---------- */
+const STORE_KEY = "wedding_checklist_v4";
+
+function buildDefault(){
+  const data = JSON.parse(JSON.stringify(DEFAULT_DATA));
+  Object.keys(data).forEach(tab=>{
+    data[tab].groups.forEach(g=>{
+      g.id = uid();
+      (g.items||[]).forEach(it=>{ it.id = uid(); it.done = false; });
+      (g.subs||[]).forEach(s=>{
+        s.id = uid();
+        s.items.forEach(it=>{ it.id = uid(); it.done = false; });
+      });
+    });
+  });
+  const budget = DEFAULT_BUDGET.map(b=>({id:uid(), name:b.name, plan:b.plan, actual:""}));
+  const tips = DEFAULT_TIPS.map(t=>({id:uid(), h:t.h, c:t.c}));
+  return {data, budget, tips};
+}
+
+let store;
+try{
+  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+  store = (saved && saved.data && saved.budget && saved.tips) ? saved : buildDefault();
+}catch(e){ store = buildDefault(); }
+
+function save(fromRemote){
+  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  // 本地改动 -> 打时间戳并推送到云端(来自远端的更新不再回推)
+  if(!fromRemote && sync.roomId){
+    sync.localAt = Date.now();
+    localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
+    schedulePush();
+  }
+}
+
+/* ================= 云同步 =================
+   用免费公共存储 jsonblob.com,无需注册、无需 key。
+   房间码 = 一串 URL,两台手机用同一个房间码就共用一份数据。
+   策略:整份数据「谁最后改以谁为准」,后台每几秒拉一次。 */
+const JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
+const ROOM_KEY   = "wedding_sync_room_v1"; // 存房间码(blob 的完整 url)
+const SYNC_AT_KEY= "wedding_sync_at_v1";   // 本机数据最后修改时间戳
+
+const sync = {
+  roomId: localStorage.getItem(ROOM_KEY) || "",
+  localAt: Number(localStorage.getItem(SYNC_AT_KEY) || 0),
+  pushTimer: null,
+  pullTimer: null,
+  pushing: false,
+  pulling: false,
+  status: "off", // off | ok | busy | err
+};
+
+function setSyncUI(status, text){
+  sync.status = status;
+  const dot = document.getElementById("syncDot");
+  const txt = document.getElementById("syncText");
+  const btn = document.getElementById("syncBtn");
+  if(!dot) return;
+  dot.className = "dot" + (status==="ok"?" on":status==="err"?" err":"");
+  txt.textContent = text;
+  btn.textContent = sync.roomId ? "☁ 同步设置" : "☁ 开启同步";
+}
+
+// 把当前数据包装成带时间戳的信封
+function envelope(){
+  return { _at: sync.localAt || Date.now(), _payload: {data:store.data, budget:store.budget, tips:store.tips} };
+}
+// 用远端数据覆盖本地
+function applyEnvelope(env){
+  if(!env || !env._payload) return false;
+  const p = env._payload;
+  if(!p.data || !p.budget || !p.tips) return false;
+  store.data = p.data; store.budget = p.budget; store.tips = p.tips;
+  sync.localAt = env._at || Date.now();
+  localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
+  localStorage.setItem(STORE_KEY, JSON.stringify(store));
+  return true;
+}
+
+// 防抖推送:改动后 1.2 秒内没有新改动才真正上传
+function schedulePush(){
+  if(!sync.roomId) return;
+  clearTimeout(sync.pushTimer);
+  setSyncUI("busy","保存中…");
+  sync.pushTimer = setTimeout(pushNow, 1200);
+}
+
+async function pushNow(){
+  if(!sync.roomId || sync.pushing) return;
+  sync.pushing = true;
+  try{
+    const res = await fetch(sync.roomId, {
+      method:"PUT",
+      headers:{"Content-Type":"application/json","Accept":"application/json"},
+      body: JSON.stringify(envelope()),
+    });
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    setSyncUI("ok","已同步 ✓");
+  }catch(e){
+    setSyncUI("err","保存失败,稍后重试");
+  }finally{
+    sync.pushing = false;
+  }
+}
+
+// 后台拉取:发现远端更新且比本地新,就应用并重绘(除非用户正在输入)
+async function pullNow(){
+  if(!sync.roomId || sync.pulling) return;
+  // 用户正在输入框里打字时,不打断
+  const a = document.activeElement;
+  if(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA")) return;
+  sync.pulling = true;
+  try{
+    const res = await fetch(sync.roomId, {headers:{"Accept":"application/json"}, cache:"no-store"});
+    if(res.status===404){ sync.pulling=false; return; }
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const env = await res.json();
+    if(env && env._at && env._at > (sync.localAt||0)){
+      if(applyEnvelope(env)){ render(); }
+    }
+    if(sync.status!=="busy") setSyncUI("ok","已同步 ✓");
+  }catch(e){
+    setSyncUI("err","连接不稳,重试中");
+  }finally{
+    sync.pulling = false;
+  }
+}
+
+function startPolling(){
+  clearInterval(sync.pullTimer);
+  if(!sync.roomId) return;
+  sync.pullTimer = setInterval(pullNow, 5000);
+}
+
+// 创建房间:把当前数据 POST 出去,拿到 blob 的 url 当房间码
+async function createRoom(){
+  sync.localAt = Date.now();
+  localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
+  const res = await fetch(JSONBLOB_BASE, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Accept":"application/json"},
+    body: JSON.stringify(envelope()),
+  });
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const loc = res.headers.get("Location");
+  // Location 形如 https://jsonblob.com/api/jsonBlob/<id>;取整段做房间码
+  let url = loc;
+  if(!url){ // 兜底:有些环境拿不到 Location 头
+    throw new Error("no-location");
+  }
+  url = url.replace(/^http:/,"https:");
+  sync.roomId = url;
+  localStorage.setItem(ROOM_KEY, url);
+  startPolling();
+  setSyncUI("ok","已同步 ✓");
+  return roomCode(url);
+}
+
+// 房间码 <-> url 互转:只让用户看到短 id,内部存完整 url
+function roomCode(url){ const m=String(url).match(/jsonBlob\/([\w-]+)/); return m?m[1]:url; }
+function codeToUrl(code){
+  code = code.trim();
+  if(/^https?:\/\//.test(code)) return code.replace(/^http:/,"https:");
+  return JSONBLOB_BASE + "/" + code;
+}
+
+async function joinRoom(code){
+  const url = codeToUrl(code);
+  const res = await fetch(url, {headers:{"Accept":"application/json"}, cache:"no-store"});
+  if(!res.ok) throw new Error("HTTP "+res.status);
+  const env = await res.json();
+  if(!applyEnvelope(env)) throw new Error("bad-data");
+  sync.roomId = url;
+  localStorage.setItem(ROOM_KEY, url);
+  startPolling();
+  render();
+  setSyncUI("ok","已同步 ✓");
+}
+
+function leaveRoom(){
+  sync.roomId = "";
+  localStorage.removeItem(ROOM_KEY);
+  clearInterval(sync.pullTimer);
+  setSyncUI("off","未同步(仅本机)");
+}
+
+/* ---------- 同步弹层 ---------- */
+const modalMask = document.getElementById("syncModal");
+const modalBody = document.getElementById("syncModalBody");
+function openModal(html){ modalBody.innerHTML = html; modalMask.classList.add("show"); bindModal(); }
+function closeModal(){ modalMask.classList.remove("show"); }
+modalMask.onclick = (e)=>{ if(e.target===modalMask) closeModal(); };
+
+function syncMenu(){
+  if(sync.roomId){
+    openModal(`
+      <h3>☁ 同步已开启</h3>
+      <p>两台手机用同一个房间码,数据自动同步。把下面的房间码发给对方即可。</p>
+      <div class="code" id="roomCodeBox">${escapeHtml(roomCode(sync.roomId))}</div>
+      <div class="row">
+        <button class="primary" id="copyCode">复制房间码</button>
+        <button class="sec" id="pullOnce">立即刷新</button>
+      </div>
+      <p class="hint">对方打开同一网址 → 开启同步 → 加入房间 → 粘贴这个码。</p>
+      <span class="close" id="leaveSync">退出同步(仅解除本机,不删云端)</span>
+      <span class="close" id="closeModal">关闭</span>
+    `);
+  }else{
+    openModal(`
+      <h3>☁ 开启云同步</h3>
+      <p>让两台手机共用同一份清单,谁勾选、谁改备注都能实时看到。</p>
+      <div class="row">
+        <button class="primary" id="doCreate">创建新同步</button>
+        <button class="sec" id="showJoin">加入已有</button>
+      </div>
+      <p class="hint">第一次用点「创建新同步」,会得到一个房间码发给对方;对方用「加入已有」粘贴码即可。数据存在免费公共云,靠房间码保护,适合私人清单。</p>
+      <span class="close" id="closeModal">关闭</span>
+    `);
+  }
+}
+
+function joinForm(){
+  openModal(`
+    <h3>加入已有同步</h3>
+    <p>粘贴对方给你的房间码:</p>
+    <input id="joinInput" placeholder="在此粘贴房间码" autocomplete="off">
+    <div class="row">
+      <button class="primary" id="doJoin">加入</button>
+      <button class="sec" id="backMenu">返回</button>
+    </div>
+    <p class="hint">加入后,你当前本机的清单会被对方的数据覆盖。</p>
+  `);
+}
+
+function bindModal(){
+  const $=(id)=>document.getElementById(id);
+  if($("closeModal")) $("closeModal").onclick = closeModal;
+  if($("doCreate")) $("doCreate").onclick = async ()=>{
+    $("doCreate").textContent = "创建中…"; $("doCreate").disabled = true;
+    try{ await createRoom(); syncMenu(); }
+    catch(e){ alert("创建失败,请检查网络后重试。"); syncMenu(); }
+  };
+  if($("showJoin")) $("showJoin").onclick = joinForm;
+  if($("backMenu")) $("backMenu").onclick = syncMenu;
+  if($("doJoin")) $("doJoin").onclick = async ()=>{
+    const code = $("joinInput").value.trim();
+    if(!code){ alert("请先粘贴房间码"); return; }
+    $("doJoin").textContent = "加入中…"; $("doJoin").disabled = true;
+    try{ await joinRoom(code); closeModal(); }
+    catch(e){ alert("加入失败:房间码不对或网络问题。"); joinForm(); }
+  };
+  if($("copyCode")) $("copyCode").onclick = ()=>{
+    const code = roomCode(sync.roomId);
+    navigator.clipboard?.writeText(code).then(
+      ()=>{ $("copyCode").textContent = "已复制 ✓"; },
+      ()=>{ prompt("手动复制房间码:", code); }
+    );
+  };
+  if($("pullOnce")) $("pullOnce").onclick = ()=>{ pullNow(); $("pullOnce").textContent="已刷新"; };
+  if($("leaveSync")) $("leaveSync").onclick = ()=>{
+    if(confirm("退出同步?本机将变回仅本地保存,云端数据不受影响,之后可用房间码再加入。")){
+      leaveRoom(); closeModal();
+    }
+  };
+}
+
+document.getElementById("syncBtn").onclick = syncMenu;
+
+const CHECK_TABS = ["timeline","contacts"];
+const PROGRESS_TABS = ["timeline"]; // 联系人不计入进度
+const tabList = [
+  {id:"timeline"}, {id:"budget", label:"💰 预算表"},
+  {id:"tips", label:"📌 注意事项"}, {id:"contacts"},
+];
+let active = "timeline";
+
+const tabsEl = document.getElementById("tabs");
+const panelsEl = document.getElementById("panels");
+
+/* ---------- 倒计时 ---------- */
+function renderCountdown(){
+  const wedding = new Date(2027,0,17,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((wedding - today)/86400000);
+  const el = document.getElementById("countdown");
+  if(days>0) el.innerHTML = `距婚礼还有 <b>${days}</b> 天`;
+  else if(days===0) el.innerHTML = `🎉 今天就是大喜之日!`;
+  else el.innerHTML = `已婚 <b>${-days}</b> 天,新婚快乐 💕`;
+}
+
+/* ---------- 渲染 ---------- */
+function whoLabel(w){return w==="bride"?"新娘":w==="groom"?"新郎":"一起";}
+function nextWho(w){return w==="both"?"bride":w==="bride"?"groom":"both";}
+
+function countArr(arr){ return {total:arr.length, done:arr.filter(x=>x.done).length}; }
+function countGroup(g){
+  let total=(g.items||[]).length, done=(g.items||[]).filter(x=>x.done).length;
+  (g.subs||[]).forEach(s=>{ total+=s.items.length; done+=s.items.filter(x=>x.done).length; });
+  return {total,done};
+}
+
+function render(){
+  tabsEl.innerHTML = "";
+  panelsEl.innerHTML = "";
+  tabList.forEach(t=>{
+    const label = t.label || store.data[t.id].label;
+    const tab = document.createElement("div");
+    tab.className = "tab" + (t.id===active?" active":"");
+    tab.textContent = label;
+    tab.onclick = ()=>{active=t.id;render();};
+    tabsEl.appendChild(tab);
+
+    const panel = document.createElement("div");
+    panel.className = "panel" + (t.id===active?" active":"");
+    if(t.id==="budget") panel.innerHTML = renderBudget();
+    else if(t.id==="tips") panel.innerHTML = renderTips();
+    else panel.innerHTML = renderChecklist(t.id);
+    panelsEl.appendChild(panel);
+  });
+  bindEvents();
+  updateProgress();
+}
+
+function renderItems(arr, containerId){
+  const items = arr.map(it=>{
+    const checked = it.done?"checked":"";
+    const doneCls = it.done?" done":"";
+    const note = it.note?`<span class="note">${escapeHtml(it.note)}</span>`:"";
+    const editCls = it.note?"edit has":"edit";
+    return `<div class="item${doneCls}">
+      <input type="checkbox" class="cb" data-id="${it.id}" ${checked}>
+      <span class="txt" data-toggle="${it.id}">${escapeHtml(it.t)}${note}</span>
+      <span class="${editCls}" data-edit="${it.id}" title="备注">✎</span>
+      <span class="who ${it.who}" data-who="${it.id}">${whoLabel(it.who)}</span>
+      <span class="del" data-del="${it.id}">×</span>
+    </div>`;
+  }).join("");
+  return items + `<div class="additem">
+    <input placeholder="添加一项…" data-addinput="${containerId}">
+    <button data-addbtn="${containerId}">添加</button>
+  </div>`;
+}
+
+function renderChecklist(tabId){
+  const groups = store.data[tabId].groups;
+  const html = groups.map(g=>{
+    const c = countGroup(g);
+    const hasSubs = g.subs && g.subs.length;
+    let body = "";
+    // 直接项:有直接项时显示;没有二级分组时也显示(便于添加松散项)
+    if((g.items && g.items.length) || !hasSubs){
+      body += renderItems(g.items || (g.items=[]), g.id);
+    }
+    // 二级子分组
+    (g.subs||[]).forEach(s=>{
+      const sc = countArr(s.items);
+      body += `<div class="sub">
+        <div class="sub-head">
+          <span class="sub-title">${escapeHtml(s.name)}</span>
+          <span class="badge">${sc.done}/${sc.total}</span>
+          <span class="sdel" data-sdel="${s.id}" title="删除子分组">🗑</span>
+        </div>
+        ${renderItems(s.items, s.id)}
+      </div>`;
+    });
+    body += `<button class="addsub" data-addsub="${g.id}">+ 添加子分组</button>`;
+    return `<div class="group" data-g="${g.id}">
+      <div class="group-head">
+        <span class="title">${escapeHtml(g.name)}</span>
+        <span class="badge">${c.done}/${c.total}</span>
+        <span class="gdel" data-gdel="${g.id}" title="删除整个阶段">🗑</span>
+      </div>
+      <div class="group-body">${body}</div>
+    </div>`;
+  }).join("");
+  return html + `<button class="addgroup" data-addgroup="${tabId}">+ 新增一个阶段</button>`;
+}
+
+function renderBudget(){
+  const rows = store.budget.map((b)=>{
+    return `<tr data-brow="${b.id}">
+      <td><input class="b-name" value="${escapeAttr(b.name)}" data-bname="${b.id}"></td>
+      <td class="num"><input class="budget-input" type="number" data-bplan="${b.id}" value="${b.plan}" placeholder="0"></td>
+      <td class="num"><input class="budget-input" type="number" data-bactual="${b.id}" value="${b.actual}" placeholder="0"></td>
+      <td class="b-del" data-bdel="${b.id}">×</td>
+    </tr>`;
+  }).join("");
+  return `<div class="group"><table>
+    <thead><tr><th>项目</th><th style="text-align:right">预算(元)</th><th style="text-align:right">实际花费</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot>
+      <tr><td>合计</td><td class="num" id="planTotal">0</td><td class="num" id="actualTotal">0</td><td></td></tr>
+    </tfoot>
+  </table></div>
+  <button class="addgroup" data-baddrow="1">+ 新增预算项目</button>
+  <p style="font-size:12px;color:var(--muted);padding:0 6px">预算和实际花费都可以直接改,底部自动合计。</p>`;
+}
+
+function renderTips(){
+  const rows = store.tips.map(t=>`<div class="tip">
+    <div class="tip-head">
+      <b>${escapeHtml(t.h)}</b>
+      <span class="tip-actions">
+        <span data-tipedit="${t.id}" title="编辑">✎</span>
+        <span data-tipdel="${t.id}" title="删除">×</span>
+      </span>
+    </div>
+    <div class="tip-body">${escapeHtml(t.c)}</div>
+  </div>`).join("");
+  return rows + `<button class="addgroup" data-tipadd="1">+ 新增注意事项</button>`;
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function escapeAttr(s){return String(s).replace(/"/g,"&quot;");}
+
+/* ---------- 查找 ---------- */
+function findItem(id){
+  for(const tab of CHECK_TABS){
+    for(const g of store.data[tab].groups){
+      let it = (g.items||[]).find(x=>x.id===id);
+      if(it) return {arr:g.items, it};
+      for(const s of (g.subs||[])){
+        it = s.items.find(x=>x.id===id);
+        if(it) return {arr:s.items, it};
+      }
+    }
+  }
+  return null;
+}
+function findGroup(id){
+  for(const tab of CHECK_TABS){
+    const g = store.data[tab].groups.find(x=>x.id===id);
+    if(g) return {tab, g, groups: store.data[tab].groups};
+  }
+  return null;
+}
+function findSub(id){
+  for(const tab of CHECK_TABS){
+    for(const g of store.data[tab].groups){
+      const s = (g.subs||[]).find(x=>x.id===id);
+      if(s) return {g, s};
+    }
+  }
+  return null;
+}
+// 添加项的容器可能是一级阶段(直接项)或二级子分组
+function findContainer(id){
+  for(const tab of CHECK_TABS){
+    for(const g of store.data[tab].groups){
+      if(g.id===id){ if(!g.items) g.items=[]; return g.items; }
+      for(const s of (g.subs||[])){
+        if(s.id===id) return s.items;
+      }
+    }
+  }
+  return null;
+}
+
+/* ---------- 事件 ---------- */
+function bindEvents(){
+  // 勾选
+  document.querySelectorAll(".cb").forEach(cb=>{
+    cb.onchange = ()=>{ const f=findItem(cb.dataset.id); if(f){f.it.done=cb.checked; save(); render();} };
+  });
+  // 点文字也可勾选
+  document.querySelectorAll("[data-toggle]").forEach(el=>{
+    el.onclick = ()=>{ const f=findItem(el.dataset.toggle); if(f){f.it.done=!f.it.done; save(); render();} };
+  });
+  // 编辑备注
+  document.querySelectorAll("[data-edit]").forEach(el=>{
+    el.onclick = ()=>{
+      const f=findItem(el.dataset.edit);
+      if(!f) return;
+      const v=prompt("备注(留空可清除):", f.it.note||"");
+      if(v===null) return;
+      const t=v.trim();
+      if(t) f.it.note=t; else delete f.it.note;
+      save(); render();
+    };
+  });
+  // 切换负责人
+  document.querySelectorAll("[data-who]").forEach(el=>{
+    el.onclick = ()=>{ const f=findItem(el.dataset.who); if(f){f.it.who=nextWho(f.it.who); save(); render();} };
+  });
+  // 删除项
+  document.querySelectorAll("[data-del]").forEach(el=>{
+    el.onclick = ()=>{
+      const f=findItem(el.dataset.del);
+      if(f){ const i=f.arr.findIndex(x=>x.id===el.dataset.del); if(i>-1) f.arr.splice(i,1); save(); render(); }
+    };
+  });
+  // 添加项(按钮 + 回车)
+  document.querySelectorAll("[data-addbtn]").forEach(btn=>{
+    btn.onclick = ()=>addItem(btn.dataset.addbtn);
+  });
+  document.querySelectorAll("[data-addinput]").forEach(inp=>{
+    inp.onkeydown = (e)=>{ if(e.key==="Enter") addItem(inp.dataset.addinput); };
+  });
+  // 删除一级阶段
+  document.querySelectorAll("[data-gdel]").forEach(el=>{
+    el.onclick = ()=>{
+      const f=findGroup(el.dataset.gdel);
+      if(f && confirm(`删除阶段「${f.g.name}」及其中所有内容?`)){
+        f.groups.splice(f.groups.findIndex(x=>x.id===el.dataset.gdel),1);
+        save(); render();
+      }
+    };
+  });
+  // 新增一级阶段
+  document.querySelectorAll("[data-addgroup]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const tab = btn.dataset.addgroup;
+      const name = prompt("新阶段/分组名称:");
+      if(name && name.trim()){
+        store.data[tab].groups.push({id:uid(), name:name.trim(), items:[], subs:[]});
+        save(); render();
+      }
+    };
+  });
+  // 新增二级子分组
+  document.querySelectorAll("[data-addsub]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const f=findGroup(btn.dataset.addsub);
+      if(!f) return;
+      const name=prompt("子分组名称:");
+      if(name && name.trim()){
+        if(!f.g.subs) f.g.subs=[];
+        f.g.subs.push({id:uid(), name:name.trim(), items:[]});
+        save(); render();
+      }
+    };
+  });
+  // 删除二级子分组
+  document.querySelectorAll("[data-sdel]").forEach(el=>{
+    el.onclick = ()=>{
+      const f=findSub(el.dataset.sdel);
+      if(f && confirm(`删除子分组「${f.s.name}」及其中所有项?`)){
+        f.g.subs.splice(f.g.subs.findIndex(x=>x.id===el.dataset.sdel),1);
+        save(); render();
+      }
+    };
+  });
+
+  // 注意事项:新增 / 编辑 / 删除
+  document.querySelectorAll("[data-tipadd]").forEach(btn=>{
+    btn.onclick = ()=>{
+      const h=prompt("注意事项标题:");
+      if(!h || !h.trim()) return;
+      const c=prompt("具体内容:","");
+      store.tips.push({id:uid(), h:h.trim(), c:(c||"").trim()});
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-tipedit]").forEach(el=>{
+    el.onclick = ()=>{
+      const t=store.tips.find(x=>x.id===el.dataset.tipedit);
+      if(!t) return;
+      const h=prompt("标题:", t.h);
+      if(h===null) return;
+      const c=prompt("内容:", t.c);
+      if(c===null) return;
+      t.h=h.trim(); t.c=c.trim();
+      save(); render();
+    };
+  });
+  document.querySelectorAll("[data-tipdel]").forEach(el=>{
+    el.onclick = ()=>{
+      const t=store.tips.find(x=>x.id===el.dataset.tipdel);
+      if(t && confirm(`删除「${t.h}」?`)){
+        store.tips = store.tips.filter(x=>x.id!==el.dataset.tipdel);
+        save(); render();
+      }
+    };
+  });
+
+  // 预算:改名 / 预算 / 实际 / 删除 / 新增
+  document.querySelectorAll("[data-bname]").forEach(inp=>{
+    inp.oninput = ()=>{ const b=store.budget.find(x=>x.id===inp.dataset.bname); if(b){b.name=inp.value; save();} };
+  });
+  document.querySelectorAll("[data-bplan]").forEach(inp=>{
+    inp.oninput = ()=>{ const b=store.budget.find(x=>x.id===inp.dataset.bplan); if(b){b.plan=inp.value===""?0:Number(inp.value); save(); updateBudgetTotal();} };
+  });
+  document.querySelectorAll("[data-bactual]").forEach(inp=>{
+    inp.oninput = ()=>{ const b=store.budget.find(x=>x.id===inp.dataset.bactual); if(b){b.actual=inp.value===""?"":Number(inp.value); save(); updateBudgetTotal();} };
+  });
+  document.querySelectorAll("[data-bdel]").forEach(el=>{
+    el.onclick = ()=>{ store.budget = store.budget.filter(x=>x.id!==el.dataset.bdel); save(); render(); };
+  });
+  document.querySelectorAll("[data-baddrow]").forEach(btn=>{
+    btn.onclick = ()=>{ store.budget.push({id:uid(), name:"新项目", plan:0, actual:""}); save(); render(); };
+  });
+
+  if(active==="budget") updateBudgetTotal();
+}
+
+function addItem(containerId){
+  const inp = document.querySelector(`[data-addinput="${containerId}"]`);
+  if(!inp) return;
+  const val = inp.value.trim();
+  if(!val) return;
+  const arr = findContainer(containerId);
+  if(arr){ arr.push({id:uid(), t:val, who:"both", done:false}); save(); render(); }
+}
+
+function updateBudgetTotal(){
+  const planTotal = store.budget.reduce((s,b)=>s+(Number(b.plan)||0),0);
+  let actualTotal = 0;
+  store.budget.forEach(b=>{ if(typeof b.actual==="number") actualTotal+=b.actual; });
+  const pt = document.getElementById("planTotal");
+  const at = document.getElementById("actualTotal");
+  if(pt) pt.textContent = planTotal.toLocaleString();
+  if(at) at.textContent = actualTotal.toLocaleString();
+}
+
+function updateProgress(){
+  let total=0, done=0;
+  PROGRESS_TABS.forEach(tab=>{
+    store.data[tab].groups.forEach(g=>{
+      (g.items||[]).forEach(it=>{ total++; if(it.done) done++; });
+      (g.subs||[]).forEach(s=>{ s.items.forEach(it=>{ total++; if(it.done) done++; }); });
+    });
+  });
+  const pct = total? Math.round(done/total*100):0;
+  document.getElementById("progressBar").style.width = pct+"%";
+  document.getElementById("doneCount").textContent = done;
+  document.getElementById("totalCount").textContent = total;
+  document.getElementById("progressPct").textContent = pct+"%";
+}
+
+document.getElementById("resetBtn").onclick = ()=>{
+  if(confirm("确定恢复默认清单吗?你添加/删除/勾选的内容都会清空。")){
+    store = buildDefault();
+    save();
+    render();
+  }
+};
+
+renderCountdown();
+render();
+
+/* ---------- 同步初始化 ---------- */
+if(sync.roomId){
+  setSyncUI("ok","已同步 ✓");
+  startPolling();
+  pullNow();           // 打开页面先拉一次对方的最新数据
+}else{
+  setSyncUI("off","未同步(仅本机)");
+}
+// 回到前台时立刻拉一次,减少等待
+document.addEventListener("visibilitychange", ()=>{
+  if(!document.hidden && sync.roomId) pullNow();
+});
+</script>
+</body>
+</html>

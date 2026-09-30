@@ -584,11 +584,12 @@ function save(fromRemote){
 }
 
 /* ================= 云同步 =================
-   用免费公共存储 jsonblob.com,无需注册、无需 key。
+   用免费公共存储 kvdb.io,无需注册、无需 key。
    房间码 = 一串 URL,两台手机用同一个房间码就共用一份数据。
    策略:整份数据「谁最后改以谁为准」,后台每几秒拉一次。 */
-const JSONBLOB_BASE = "https://jsonblob.com/api/jsonBlob";
-const ROOM_KEY   = "wedding_sync_room_v1"; // 存房间码(blob 的完整 url)
+const SYNC_BASE  = "https://kvdb.io";
+const SYNC_KEY   = "wedding";              // 数据存在桶里的这个 key 下
+const ROOM_KEY   = "wedding_sync_room_v1"; // 存房间码(完整 url)
 const SYNC_AT_KEY= "wedding_sync_at_v1";   // 本机数据最后修改时间戳
 
 const sync = {
@@ -683,23 +684,21 @@ function startPolling(){
   sync.pullTimer = setInterval(pullNow, 5000);
 }
 
-// 创建房间:把当前数据 POST 出去,拿到 blob 的 url 当房间码
+// 创建房间:填一个邮箱 POST 到 kvdb.io 拿到桶(桶名即房间码),数据存在该桶的 wedding key 下
 async function createRoom(){
+  const email = (prompt("创建同步房间需要一个邮箱(kvdb.io 免费服务的要求,仅用于创建/找回房间,不会展示在页面上)。请输入你的邮箱:") || "").trim();
+  if(!email) throw new Error("未填写邮箱,已取消");
   sync.localAt = Date.now();
   localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
-  const res = await fetch(JSONBLOB_BASE, {
+  const res = await fetch(SYNC_BASE, {
     method:"POST",
-    headers:{"Content-Type":"application/json","Accept":"application/json"},
-    body: JSON.stringify(envelope()),
+    headers:{"Content-Type":"application/x-www-form-urlencoded"},
+    body: "email=" + encodeURIComponent(email),
   });
   if(!res.ok) throw new Error("HTTP "+res.status);
-  const loc = res.headers.get("Location");
-  // Location 形如 https://jsonblob.com/api/jsonBlob/<id>;取整段做房间码
-  let url = loc;
-  if(!url){ // 兜底:有些环境拿不到 Location 头
-    throw new Error("no-location");
-  }
-  url = url.replace(/^http:/,"https:");
+  const bucket = (await res.text()).trim();
+  if(!bucket) throw new Error("no-bucket");
+  const url = SYNC_BASE + "/" + bucket + "/" + SYNC_KEY;
   sync.roomId = url;
   localStorage.setItem(ROOM_KEY, url);
   startPolling();
@@ -707,12 +706,12 @@ async function createRoom(){
   return roomCode(url);
 }
 
-// 房间码 <-> url 互转:只让用户看到短 id,内部存完整 url
-function roomCode(url){ const m=String(url).match(/jsonBlob\/([\w-]+)/); return m?m[1]:url; }
+// 房间码 <-> url 互转:只让用户看到短 id(桶名),内部存完整 url
+function roomCode(url){ const m=String(url).match(/kvdb\.io\/([\w-]+)/); return m?m[1]:url; }
 function codeToUrl(code){
   code = code.trim();
   if(/^https?:\/\//.test(code)) return code.replace(/^http:/,"https:");
-  return JSONBLOB_BASE + "/" + code;
+  return SYNC_BASE + "/" + code + "/" + SYNC_KEY;
 }
 
 async function joinRoom(code){
@@ -764,7 +763,7 @@ function syncMenu(){
         <button class="primary" id="doCreate">创建新同步</button>
         <button class="sec" id="showJoin">加入已有</button>
       </div>
-      <p class="hint">第一次用点「创建新同步」,会得到一个房间码发给对方;对方用「加入已有」粘贴码即可。数据存在免费公共云,靠房间码保护,适合私人清单。</p>
+      <p class="hint">第一次用点「创建新同步」(会要求填一个邮箱,kvdb.io 会向该邮箱发一封激活链接,请先点开激活再开始同步,否则会提示保存失败;邮箱不会展示在页面上),会得到一个房间码发给对方;对方用「加入已有」粘贴码即可。数据存在免费公共云,靠房间码保护,适合私人清单。</p>
       <span class="close" id="closeModal">关闭</span>
     `);
   }
@@ -789,7 +788,7 @@ function bindModal(){
   if($("doCreate")) $("doCreate").onclick = async ()=>{
     $("doCreate").textContent = "创建中…"; $("doCreate").disabled = true;
     try{ await createRoom(); syncMenu(); }
-    catch(e){ alert("创建失败,请检查网络后重试。"); syncMenu(); }
+    catch(e){ alert("创建失败:"+(e && e.message ? e.message : "请检查网络后重试。")); syncMenu(); }
   };
   if($("showJoin")) $("showJoin").onclick = joinForm;
   if($("backMenu")) $("backMenu").onclick = syncMenu;
@@ -798,7 +797,7 @@ function bindModal(){
     if(!code){ alert("请先粘贴房间码"); return; }
     $("doJoin").textContent = "加入中…"; $("doJoin").disabled = true;
     try{ await joinRoom(code); closeModal(); }
-    catch(e){ alert("加入失败:房间码不对或网络问题。"); joinForm(); }
+    catch(e){ alert("加入失败:"+(e && e.message ? e.message : "房间码不对或网络问题。")); joinForm(); }
   };
   if($("copyCode")) $("copyCode").onclick = ()=>{
     const code = roomCode(sync.roomId);

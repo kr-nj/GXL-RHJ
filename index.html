@@ -576,7 +576,7 @@ try{
 function save(fromRemote){
   localStorage.setItem(STORE_KEY, JSON.stringify(store));
   // 本地改动 -> 打时间戳并推送到云端(来自远端的更新不再回推)
-  if(!fromRemote && sync.roomId){
+  if(!fromRemote){
     sync.localAt = Date.now();
     localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
     schedulePush();
@@ -584,16 +584,12 @@ function save(fromRemote){
 }
 
 /* ================= 云同步 =================
-   用免费公共存储 kvdb.io,无需注册、无需 key。
-   房间码 = 一串 URL,两台手机用同一个房间码就共用一份数据。
-   策略:整份数据「谁最后改以谁为准」,后台每几秒拉一次。 */
-const SYNC_BASE  = "https://kvdb.io";
-const SYNC_KEY   = "wedding";              // 数据存在桶里的这个 key 下
-const ROOM_KEY   = "wedding_sync_room_v1"; // 存房间码(完整 url)
+   数据保存在自己的服务器 https://one-science.cn/api/sync/wedding
+   打开页面即自动同步:谁最后改以谁为准,改动后 1.2 秒推送,每 5 秒拉取一次。 */
+const SYNC_API   = "https://one-science.cn/api/sync/wedding";
 const SYNC_AT_KEY= "wedding_sync_at_v1";   // 本机数据最后修改时间戳
 
 const sync = {
-  roomId: localStorage.getItem(ROOM_KEY) || "",
   localAt: Number(localStorage.getItem(SYNC_AT_KEY) || 0),
   pushTimer: null,
   pullTimer: null,
@@ -610,7 +606,7 @@ function setSyncUI(status, text){
   if(!dot) return;
   dot.className = "dot" + (status==="ok"?" on":status==="err"?" err":"");
   txt.textContent = text;
-  btn.textContent = sync.roomId ? "☁ 同步设置" : "☁ 开启同步";
+  btn.textContent = "☁ 同步设置";
 }
 
 // 把当前数据包装成带时间戳的信封
@@ -631,17 +627,16 @@ function applyEnvelope(env){
 
 // 防抖推送:改动后 1.2 秒内没有新改动才真正上传
 function schedulePush(){
-  if(!sync.roomId) return;
   clearTimeout(sync.pushTimer);
   setSyncUI("busy","保存中…");
   sync.pushTimer = setTimeout(pushNow, 1200);
 }
 
 async function pushNow(){
-  if(!sync.roomId || sync.pushing) return;
+  if(sync.pushing) return;
   sync.pushing = true;
   try{
-    const res = await fetch(sync.roomId, {
+    const res = await fetch(SYNC_API, {
       method:"PUT",
       headers:{"Content-Type":"application/json","Accept":"application/json"},
       body: JSON.stringify(envelope()),
@@ -657,14 +652,13 @@ async function pushNow(){
 
 // 后台拉取:发现远端更新且比本地新,就应用并重绘(除非用户正在输入)
 async function pullNow(){
-  if(!sync.roomId || sync.pulling) return;
-  // 用户正在输入框里打字时,不打断
+  if(sync.pulling) return;
   const a = document.activeElement;
   if(a && (a.tagName==="INPUT" || a.tagName==="TEXTAREA")) return;
   sync.pulling = true;
   try{
-    const res = await fetch(sync.roomId, {headers:{"Accept":"application/json"}, cache:"no-store"});
-    if(res.status===404){ sync.pulling=false; return; }
+    const res = await fetch(SYNC_API, {headers:{"Accept":"application/json"}, cache:"no-store"});
+    if(res.status===404){ if(sync.status!=="busy") setSyncUI("ok","已同步 ✓"); return; }
     if(!res.ok) throw new Error("HTTP "+res.status);
     const env = await res.json();
     if(env && env._at && env._at > (sync.localAt||0)){
@@ -680,155 +674,33 @@ async function pullNow(){
 
 function startPolling(){
   clearInterval(sync.pullTimer);
-  if(!sync.roomId) return;
   sync.pullTimer = setInterval(pullNow, 5000);
 }
 
-// 创建房间:填一个邮箱 POST 到 kvdb.io 拿到桶(桶名即房间码),数据存在该桶的 wedding key 下
-async function createRoom(){
-  const email = (prompt("创建同步房间需要一个邮箱(kvdb.io 免费服务的要求,仅用于创建/找回房间,不会展示在页面上)。请输入你的邮箱:") || "").trim();
-  if(!email) throw new Error("未填写邮箱,已取消");
-  const res = await fetch(SYNC_BASE, {
-    method:"POST",
-    headers:{"Content-Type":"application/x-www-form-urlencoded"},
-    body: "email=" + encodeURIComponent(email),
-  });
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const bucket = (await res.text()).trim();
-  if(!bucket) throw new Error("no-bucket");
-  const url = SYNC_BASE + "/" + bucket + "/" + SYNC_KEY;
-  // 立即把当前数据写入云端(否则对方加入时读到空数据,会 404)
-  sync.localAt = Date.now();
-  localStorage.setItem(SYNC_AT_KEY, String(sync.localAt));
-  const init = await fetch(url, {
-    method:"PUT",
-    headers:{"Content-Type":"application/json","Accept":"application/json"},
-    body: JSON.stringify(envelope()),
-  });
-  if(!init.ok){
-    let tip = "";
-    if(init.status===403) tip = " (邮箱还未激活:请先打开邮箱里 kvdb.io 的激活链接,激活后重新创建)";
-    throw new Error("HTTP "+init.status+tip);
-  }
-  sync.roomId = url;
-  localStorage.setItem(ROOM_KEY, url);
-  startPolling();
-  setSyncUI("ok","已同步 ✓");
-  return roomCode(url);
-}
-
-// 房间码 <-> url 互转:只让用户看到短 id(桶名),内部存完整 url
-function roomCode(url){ const m=String(url).match(/kvdb\.io\/([\w-]+)/); return m?m[1]:url; }
-function codeToUrl(code){
-  code = code.trim();
-  if(/^https?:\/\//.test(code)) return code.replace(/^http:/,"https:");
-  return SYNC_BASE + "/" + code + "/" + SYNC_KEY;
-}
-
-async function joinRoom(code){
-  const url = codeToUrl(code);
-  const res = await fetch(url, {headers:{"Accept":"application/json"}, cache:"no-store"});
-  if(!res.ok) throw new Error("HTTP "+res.status);
-  const env = await res.json();
-  if(!applyEnvelope(env)) throw new Error("bad-data");
-  sync.roomId = url;
-  localStorage.setItem(ROOM_KEY, url);
-  startPolling();
-  render();
-  setSyncUI("ok","已同步 ✓");
-}
-
-function leaveRoom(){
-  sync.roomId = "";
-  localStorage.removeItem(ROOM_KEY);
-  clearInterval(sync.pullTimer);
-  setSyncUI("off","未同步(仅本机)");
-}
-
-/* ---------- 同步弹层 ---------- */
+/* ---------- 同步弹层(仅状态说明,无需房间码) ---------- */
 const modalMask = document.getElementById("syncModal");
 const modalBody = document.getElementById("syncModalBody");
-function openModal(html){ modalBody.innerHTML = html; modalMask.classList.add("show"); bindModal(); }
+function openModal(html){ modalBody.innerHTML = html; bindModal(); modalMask.classList.add("show"); }
 function closeModal(){ modalMask.classList.remove("show"); }
 modalMask.onclick = (e)=>{ if(e.target===modalMask) closeModal(); };
 
 function syncMenu(){
-  if(sync.roomId){
-    openModal(`
-      <h3>☁ 同步已开启</h3>
-      <p>两台手机用同一个房间码,数据自动同步。把下面的房间码发给对方即可。</p>
-      <div class="code" id="roomCodeBox">${escapeHtml(roomCode(sync.roomId))}</div>
-      <div class="row">
-        <button class="primary" id="copyCode">复制房间码</button>
-        <button class="sec" id="pullOnce">立即刷新</button>
-      </div>
-      <p class="hint">对方打开同一网址 → 开启同步 → 加入房间 → 粘贴这个码。</p>
-      <span class="close" id="leaveSync">退出同步(仅解除本机,不删云端)</span>
-      <span class="close" id="closeModal">关闭</span>
-    `);
-  }else{
-    openModal(`
-      <h3>☁ 开启云同步</h3>
-      <p>让两台手机共用同一份清单,谁勾选、谁改备注都能实时看到。</p>
-      <div class="row">
-        <button class="primary" id="doCreate">创建新同步</button>
-        <button class="sec" id="showJoin">加入已有</button>
-      </div>
-      <p class="hint">第一次用点「创建新同步」(会要求填一个邮箱,kvdb.io 会向该邮箱发一封激活链接,请先点开激活再开始同步,否则会提示保存失败;邮箱不会展示在页面上),会得到一个房间码发给对方;对方用「加入已有」粘贴码即可。数据存在免费公共云,靠房间码保护,适合私人清单。</p>
-      <span class="close" id="closeModal">关闭</span>
-    `);
-  }
-}
-
-function joinForm(){
   openModal(`
-    <h3>加入已有同步</h3>
-    <p>粘贴对方给你的房间码:</p>
-    <input id="joinInput" placeholder="在此粘贴房间码" autocomplete="off">
+    <h3>☁ 云端同步</h3>
+    <p>清单数据自动保存到你自己的服务器(one-science.cn),两台手机打开同一网址即自动互通,无需房间码。双方同时修改时,以最后修改的一方为准。</p>
     <div class="row">
-      <button class="primary" id="doJoin">加入</button>
-      <button class="sec" id="backMenu">返回</button>
+      <button class="primary" id="pullOnce">立即刷新</button>
+      <button class="sec" id="closeModal">关闭</button>
     </div>
-    <p class="hint">加入后,你当前本机的清单会被对方的数据覆盖。</p>
+    <span class="close" id="closeModal2">关闭</span>
   `);
 }
 
 function bindModal(){
   const $=(id)=>document.getElementById(id);
   if($("closeModal")) $("closeModal").onclick = closeModal;
-  if($("doCreate")) $("doCreate").onclick = async ()=>{
-    $("doCreate").textContent = "创建中…"; $("doCreate").disabled = true;
-    try{ await createRoom(); syncMenu(); }
-    catch(e){ alert("创建失败:"+(e && e.message ? e.message : "请检查网络后重试。")); syncMenu(); }
-  };
-  if($("showJoin")) $("showJoin").onclick = joinForm;
-  if($("backMenu")) $("backMenu").onclick = syncMenu;
-  if($("doJoin")) $("doJoin").onclick = async ()=>{
-    const code = $("joinInput").value.trim();
-    if(!code){ alert("请先粘贴房间码"); return; }
-    $("doJoin").textContent = "加入中…"; $("doJoin").disabled = true;
-    try{ await joinRoom(code); closeModal(); }
-    catch(e){
-      const msg = e && e.message ? e.message : "房间码不对或网络问题。";
-      let tip = "请确认房间码粘贴完整,且对方是用新版页面创建并激活了邮箱。";
-      if(String(msg).indexOf("404")>-1) tip = "可能是房间码不对,或对方创建后云端还没有数据:请对方重新创建同步后,把新的房间码发给你。";
-      alert("加入失败:"+msg+"\n"+tip);
-      joinForm();
-    }
-  };
-  if($("copyCode")) $("copyCode").onclick = ()=>{
-    const code = roomCode(sync.roomId);
-    navigator.clipboard?.writeText(code).then(
-      ()=>{ $("copyCode").textContent = "已复制 ✓"; },
-      ()=>{ prompt("手动复制房间码:", code); }
-    );
-  };
+  if($("closeModal2")) $("closeModal2").onclick = closeModal;
   if($("pullOnce")) $("pullOnce").onclick = ()=>{ pullNow(); $("pullOnce").textContent="已刷新"; };
-  if($("leaveSync")) $("leaveSync").onclick = ()=>{
-    if(confirm("退出同步?本机将变回仅本地保存,云端数据不受影响,之后可用房间码再加入。")){
-      leaveRoom(); closeModal();
-    }
-  };
 }
 
 document.getElementById("syncBtn").onclick = syncMenu;
@@ -1206,16 +1078,12 @@ renderCountdown();
 render();
 
 /* ---------- 同步初始化 ---------- */
-if(sync.roomId){
-  setSyncUI("ok","已同步 ✓");
-  startPolling();
-  pullNow();           // 打开页面先拉一次对方的最新数据
-}else{
-  setSyncUI("off","未同步(仅本机)");
-}
+setSyncUI("ok","云端同步已开启");
+startPolling();
+pullNow(); // 打开页面先拉一次云端数据
 // 回到前台时立刻拉一次,减少等待
 document.addEventListener("visibilitychange", ()=>{
-  if(!document.hidden && sync.roomId) pullNow();
+  if(!document.hidden) pullNow();
 });
 </script>
 </body>
